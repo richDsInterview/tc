@@ -1,0 +1,3 @@
+nose
+compareimages
+numpy

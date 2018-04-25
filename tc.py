@@ -15,6 +15,7 @@ import os
 import numpy as np
 import cv2
 import shutil
+import compareimages
 
 def main(arguments):
 
