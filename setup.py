@@ -16,8 +16,8 @@ setup(
     long_description=readme,
     author='Richard Armstrong',
     author_email='armstrong.richard@gmail.com',
-    url='https://github.com/',
+    url='https://github.com/richDsInterview/',
     license=license,
-    packages=find_packages(exclude=('tests', 'docs'))
+    packages=find_packages(exclude=('tests', 'docs', 'venv'))
 )
 
