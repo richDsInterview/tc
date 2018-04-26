@@ -6,6 +6,18 @@ _In this technical challenge we want to test for basic skills such as python cod
 
 ![icon](images/icon2.png)
 
+to run:
+
+    git clone https://github.com/richDsInterview/tc.git
+    cd tc
+    virtualenv venv
+    source venv/bin/activate
+    install -r requirements.txt
+  
+then
+python tc.py <test_image> <database_dir> <method|exact/scaled/phash> 
+
+    python tc.py ../Data_Science_Images/Test/test_image6.jpeg ../Data_Science_Images/Training exact
 
 ## QUESTIONS
 
