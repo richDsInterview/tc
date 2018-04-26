@@ -6,7 +6,7 @@ to run:
     cd tc
     virtualenv venv
     source venv/bin/activate
-    install -r requirements.txt
+    pip install -r requirements.txt
   
 then
 python tc.py <test_image> <database_dir> <method|exact/scaled/phash> 
@@ -33,20 +33,26 @@ __For the first question your goal is to write a python function to determine wh
 
 Option 1: directly compare the byte values of each image file in the Testing directory to the target image, and print the boolean response to the command line.
 Option 2: convert the image files to an array (numpy) in memory and perform pixel-by-pixel comparison.
- 
- When invoked with arguments pointing to the test image and database directory respectively, the python script compareTwoImagesExact.py will return if any of the database images is an exact binary match to the test image, and also if the numpy representations of the two images exactly match. If there is a match, the image will not be added to the Training directory.
 
-    exactImageRepetition.py infile dbDir
-    
-    python3 exactImageRepetition.py Data_Science_Images/Test/test_image7.jpg Data_Science_Images/Training/
-    No match found. Adding test_image7.jpg to database directory,
-
-Of course there are serious limitations to this approach:
+#### Considerations andLimitations:
 * for the binary comparison to succeed, the files must be precisely the same; one is unable with this approach to determine similarity of images if they are of different file formats, even the same class of file format, even if the images are otherwise identical in all respects.
 * the numpy representation (`bit map' comparison) is marginally better, in that it could be possible to correctly identify copies from two different image files if their ipython representations are the same.
-    
 * any image modification, such as rotations, translations, blurring, the addition of noise, scaling, and cropping will result in failure of direct comparison.
-* this method is not optimised for speed in any way. For faster execution, especially of for loops, one could for example port the script to Cython. In the second question, I implement a method for computing scaled, uniform 16x16 pixel 'postage-stamp' representations of the image maps that can be precomputed and stored in a database, affording speedier comparison of multiple images
+ 
+ When invoked with arguments pointing to the test image and database directory respectively and the method keyword "exact", the python script tc.py, will return if the numpy representations of the two images exactly match. If there is a match, the image will not be added to the Training directory.
+
+    python tc.py infile dbDir exact
+    
+    python3 tc.py Data_Science_Images/Test/test_image7.jpg Data_Science_Images/Training/
+    No match found. Adding test_image7.jpg to database directory,
+
+
+ #### Speed Considerations:
+* this method is not optimised for speed in any way. For faster execution, especially of for loops, one could, for example:
+    * port the script to one of the Python C-wrapped numerical packages (CPython/Cython/etc) 
+    * unroll inner loops wherever possible, especially for large images
+    * reduce the image dimensions: pre-process, and efficiently-store the database images. For instance, in the second question, I implement a method for computing scaled, uniform 16x16 pixel 'postage-stamp' representations of the image maps that can be precomputed and stored in a database, affording faster comparison of multiple images.
+    * use an efficient data structure for storage of image representations. BK-trees group objects by their Hamming-distance, the number of bits different between adjacent elements. Once 'hashed' (having the hash function map computed) a new image would be very efficiently compared to potential nearby image hashes, and rejected faster (O(n_log_N)).
 
 ### Image repetition with resizing
 
@@ -54,9 +60,9 @@ __We next want to check if a new test image is the same as any of the training d
 
 In order to compare two scaled versions of an identical image, we scale both to a common grid of an appropriate dimension and directly compare the scaled representations.
 
-Grid size: there are various options for the grid size: one could decide to use the size of the smaller image as the reference size, or preferably* determine some global grid size to which all images are scaled for comparison.
+Grid size: there are various options for the grid size: one could decide to use the size of the smaller image as the reference size, or arguably preferably*, determine some global grid size to which all images are scaled for comparison.
 
-_*(the global grid approach is preferable because it will afford the ability to pre-compute and store a database of 'thumbnail' images. It will have a predictable/bounded computation time, and also more predictable results between arbitrary input images)_
+_*(the global grid approach is preferable because it will afford the ability to pre-compute and store a database of 'thumbnail' images. It will have a predictable/bounded computation time, and also more predictable results between arbitrarily-sized input images)_
 
 Nearness: aliasing effects due to resizing are likely to change the pixel values slightly for identical, scaled images, so ideally a nearness function and appropriate threshold should be determined, rather than exact pixel comparison.
 
@@ -67,13 +73,15 @@ Require:
 Issues: 
 + while this approach can deal with scaling, other image modifications (rotations, translations, blurring, the addition of noise, scaling, cropping) are not dealt with.
 
-When invoked with arguments pointing to the test image and database directory respectively, the python script scaledImageRepetition.py will return if any of the database images is a scaled replica of the test image. If this is true, the image will not be added to the Training directory.
+When invoked with arguments pointing to the test image and database directory respectively, and the method keyword "scaled", the python script tc.py will return if any of the database images is a scaled replica of the test image, even if it has been rescaled multiply, introducing aliasing effects. If it is a replica to within a threshold value, the image will not be added to the Training directory.
 
-    python3 scaledImageRepetition.py ../Data_Science_Images/Test/test_image4.jpg ../Data_Science_Images/Training/
+    python3 tc.py Data_Science_Images/Test/test_image4.jpg Data_Science_Images/Training/ scaled
     Matching image found in database directory:  training_image3.jpg  (score:  1.0 )
     Match(es) found. Not adding
+
+and
     
-    python3 scaledImageRepetition.py ../Data_Science_Images/Test/test_image6.jpeg ../Data_Science_Images/Training/
+    python3 tc.py Data_Science_Images/Test/test_image6.jpeg Data_Science_Images/Training/
     No match found. Adding test_image6.jpeg to database directory.
 
 ## Further Thoughts about Scaling
@@ -111,7 +119,7 @@ Note that all quantisation processes (RBG colour, pixel values, and image size) 
 
 In the full implementation, I have written a comparison function that allows all three options, but with defaults set to discard/quantise colour information, quantise pixel values more coarsely, and to use thumbnail representations.
 
-    python3 scaledImageRepetition.py Data_Science_Images/Test/test_image9_scaled_unscaled.jpg Data_Science_Images/Test/  -t -g -q8
+    python3 tc.py Data_Science_Images/Test/test_image9_scaled_unscaled.jpg Data_Science_Images/Test/  scaled -t -g -q8
     
     Matching image found in database directory:  test_image9.jpg  (score:  0.85390625 ).
     Matching image found in database directory:  test_image6.jpeg  (score:  0.78515625 ).
@@ -121,7 +129,7 @@ In the full implementation, I have written a comparison function that allows all
     Match(es) found. Not adding
 
 ## Perceptual Hashing
-All of the above processes are, in effect, tending toward a hash function (i.e. a map of arbitrary-sized data to data of fixed size) of the input image. Specifically, we would like a _perceptual_ hash of the image, one that produces similar hashes for similar input vectors/maps and dissimilar hashes for dissimilar inputs (note that this is the opposite behaviour requiured of cryptographic hash functions, which require maximally uncorrelated hashes for nearby input values).
+All of the above processes are, in effect, tending toward a hash function (i.e. a map of arbitrary-sized data to data of fixed size) of the input image. Specifically, we would like a _perceptual_ hash of the image, one that produces similar hashes for similar input vectors/maps and dissimilar hashes for dissimilar inputs (note that this is the opposite behaviour required of cryptographic hash functions, which require maximally uncorrelated hashes for nearby input values).
 
 
 A major advantage of this method is that hashing is computationally efficient, and broadly corresponds to our requirements. The main issues with the class of perceptual hashes is that they are not generally rotation-invariant and do not work as well if the image is cropped, damaged or amended (although, as expected, there are variants that combat this at the cost of performance in other metrics).
@@ -147,28 +155,24 @@ I've chosen to go with this approach for computational efficiecy, and braod robu
 We require, for this comparison, a map of the input image to some representation in some basis or some hash that is:
 + broadly insensitive to rotations and translations, affine-invariance.
 + insensitive (with respect to the difference in SNR between images) to blurred or noisy images, and
-+ also has some ability to deal with cropping (a harder problem)
++ also has some ability to deal with cropping (a harder problem).
 + efficient/fast execution speed is also desirable.
 
-A solution (that will take more computation and time) is to use some kind of feature selection and extraction algorithm that has required properties. Examples of these are [SSIM](https://en.wikipedia.org/wiki/Structural_similarity"), [SIFT](https://en.wikipedia.org/wiki/Scale-invariant_feature_transform)/[SURF](https://en.wikipedia.org/wiki/Speeded_up_robust_features)*, etc (although, see https://arxiv.org/abs/1503.06680). Or else one could use some weighted combination of these that has, say, been trained to optimal weights using machine learning practices (i.e. spliting the dataset into training and testing, learning on the training data and verifying on the testing)
-
-*(_These algorithms essentially operate on chunks of maps at multiple scales, identifying characteristic features that are peaks at multiple chunk scales. Once these are identified, they are described in a way forcing them to the same size and orientation for lookup. Since for different images these features should presumably be scattered throughout the image, the image can be recognized even if certain features are obscured or modified._)
-
-One could also take some set of combined image representations and determine weighting of each in the final distinguisher function by standard machine learning techniques.
+A solution (that will take more computation and time) is to use some kind of feature selection and extraction algorithm that has required properties. Examples of these are [SSIM](https://en.wikipedia.org/wiki/Structural_similarity"), [SIFT](https://en.wikipedia.org/wiki/Scale-invariant_feature_transform)/[SURF](https://en.wikipedia.org/wiki/Speeded_up_robust_features)*, etc (although, see https://arxiv.org/abs/1503.06680). Or else one could use some weighted combination of these that has, say, been trained to optimal weights using machine learning practices (i.e. splitting the dataset into training and testing, learning on the training data and verifying on the testing, then using the smae strategy to learn on the combined set, etc.). One could also take some set of combined image representations and determine weighting of each in the final distinguisher function by standard machine learning techniques.
 
 ## implement algorithm
 
-If I had lots of time, I'd perhaps test one of these hybrid methods. Since I don't, I have chosen to use the dhash algorithm, installed through PyPI (which itself depends on PIL)
+If I had lots of time, I'd perhaps test one of these hybrid methods. Since I don't, I have chosen to use the dhash algorithm, installed through PyPI.
 
-The python script perceptualHashRecognition.py run with arguments of the test image and database directory respectively, implements a difference hash on both images, and compares each through the Hamming distance metric:
+The python script tc.py run with arguments of the test image and database directory respectively, implements a difference hash on both images, and compares each through the Hamming distance metric:
 
-    python3 perceptualHashRepetition.py Data_Science_Images/Test/test_image6.jpeg Data_Science_Images/Test/
+    python3 tc.py Data_Science_Images/Test/test_image6.jpeg Data_Science_Images/Test/
     
     Matching image found in database directory:  test_image8.jpg  (score:  1.0 ).
     Matching image found in database directory:  test_image9.jpg  (score:  0.9921875 ).
     Matching image found in database directory:  test_image6.jpeg  (score:  1.0 ).
     
-## handling false-positive/false-negative ratio
+## Handling false-positive/false-negative ratio
 __Suppose you want a False Positive to False Negative rate of 2-1 (i.e., for every image that you incorrectly exclude from your database, you are willing to accept two images that should have been excluded because they are replicas of images in your database). How would you go about achieving that ratio, assuming you had a sufficiently large training set of images?__
 
 We desire to maximise difference between/separability of the distributions of the distance between test and database images in the negative case (i.e. new image is not a close copy of an existing image) and the positive case (i.e. new image is a close copy of existing image) for some representation/featureset or hash, such that a threshold value may be chosen to ensure the ratio of areas of each histogram on the opposite side of the threshold is 2:1.
@@ -222,6 +226,9 @@ However, performance gains are (always) to be had:
 ## Closing Question
 __Do you think this set of challenges missed some important data science skills that you have? If so please let us know. This is a chance to let us know what your super skills are!__
 
-One could use some of the recent developments in AI to classify and tag images at the same time. For instance, could either train a deep convolutional neural network on our own tagged database (or use one of the existing image classification CNNs) to automatically add image tags as we check for uniqueness.
+One could make use of some of the recent developments in AI to classify and tag images at the same time. For instance, could train a deep convolutional neural network on our own tagged database (or use one of the existing image classification CNNs) to automatically add image tags before we check for uniqueness, and then only search within the database entries with similar classifier keywords.
 
-[More to follow!]
+[more to say here]
+
+In the realm of super-skills, which I interpret to mean unique selling points, and forced for some answer, I have an unusually deep understanding of alternative hardware, from configurable digital logic (FPGAs) to high-speed networking to massively multicore SIMD machines. I believe AI and Data science more broadly are 
+
