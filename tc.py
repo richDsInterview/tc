@@ -13,9 +13,8 @@ import sys
 import argparse
 import os
 import numpy as np
-import cv2
 import shutil
-import compareimages
+import compareimages.core as c
 
 def main(arguments):
 
@@ -24,10 +23,11 @@ def main(arguments):
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('infile', help="path to file to compare") #, type=argparse.FileType('r'))
     parser.add_argument('dbDir', help="path to 'Database' directory")
+    parser.add_argument('-m', '--method', help='', type=string, choices=['exact', 'scaled', 'phash'], default='phash')
     parser.add_argument('-t', help="make thumbnail image", action="store_true")
     parser.add_argument('-g', help="make greyscale/flatten colour information", action="store_true")
     parser.add_argument('-q', help="pixel quantisation factor 2^x (default 2^8)", type=int, default=8)
-    parser.add_argument('--threshold', help="threshold val (default 0.5)", type=float, default=0.5)
+    parser.add_argument('--threshold', help="threshold val (default 0.7)", type=float, default=0.7)
 
 
     args = parser.parse_args(arguments)
@@ -37,32 +37,36 @@ def main(arguments):
     score = 0.0
 
     try:
-        imTest = cv2.imread(args.infile)
-        shape = imTest.shape
-    except IOError:
-        # filename not an image file
-        print("An error occurred trying to read the file.")
-        exit()
-    except AttributeError:
-        print("An error occurred trying to read the input file. Is it an image file?")
-        exit()
+        imTest = imageio.imread(infile)
+    except FileNotFoundError: # file does not exist
+        print("compare_images_phash: one of the file arguments does not exist")
+        return None
+    except ValueError: # file is not an image file
+        print("compare_images_exact: one of the file arguments is not an image file")
+        return None
+    except Exception: # unexpected/unknown exception
+        print("compare_images_exact: unexpected/unhandled behaviour in image file reading process")
+        return None
 
     # loop through each image in the Test database
     for dbImg in os.listdir(args.dbDir):
         # convert current DB image into numpy array
         try:
-            imDB = cv2.imread(baseDir + "/" + dbImg)
-            shape = imDB.shape
-        except IOError:
-            # filename not an image file: ignore
+            imDB = imageio.imread(baseDir + "/" + dbImg)
+        except ValueError:  # file in database is not an image file: just ignore it
             continue
-        except AttributeError:
-            # a file in the input database directory is not converting to a numpy array correctly. \
-            # Ignore this file and move to the next
+        except Exception:  # unexpected/unknown exception: continue
             continue
 
         # compare the two images
-        score, diff = compareScaled(imDB, imTest, thumb=args.t, grey=args.g, pixelQuant=args.q)
+        if args.m == 'exact':
+            score = c.compare_images_exact(imDB, imTest)
+            diff = np.array([])
+        elif args.m == 'scaled':
+            score, diff = c.compare_images_scaled(imDB, imTest, thumb=args.t, grey=args.g, pixelQuant=args.q)
+        elif args.m == 'phash':
+            score, diff = c.compare_images_phash(imDB, imTest)
+            diff = np.array([])
 
         if score >= args.threshold:
             match = True
@@ -81,6 +85,3 @@ def main(arguments):
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]))
 
-
-def get_num_bits_different(hash1, hash2):
-    return bin(hash1 ^ hash2).count('1')
