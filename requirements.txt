@@ -1,4 +1,4 @@
 nose
 numpy
-cv2
+opencv-python
 -e git+https://github.com/richDsInterview/compareimages.git#egg=compareimages

@@ -10,9 +10,9 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='template',
+    name='tc',
     version='0.1.0',
-    description='template module project',
+    description='script to solve a technical challenge on image identification',
     long_description=readme,
     author='Richard Armstrong',
     author_email='armstrong.richard@gmail.com',
