@@ -12,8 +12,9 @@ Arguments:
 import sys
 import argparse
 import os
-import numpy as np
 import shutil
+import numpy as np
+import imageio
 import compareimages.core as c
 
 def main(arguments):
@@ -23,7 +24,7 @@ def main(arguments):
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('infile', help="path to file to compare") #, type=argparse.FileType('r'))
     parser.add_argument('dbDir', help="path to 'Database' directory")
-    parser.add_argument('-m', '--method', help='', choices=['exact', 'scaled', 'phash'], default='phash')
+    parser.add_argument('method', help='', choices=["exact", "scaled", "phash"])
     parser.add_argument('-t', help="make thumbnail image", action="store_true")
     parser.add_argument('-g', help="make greyscale/flatten colour information", action="store_true")
     parser.add_argument('-q', help="pixel quantisation factor 2^x (default 2^8)", type=int, default=8)
@@ -37,16 +38,16 @@ def main(arguments):
     score = 0.0
 
     try:
-        imTest = imageio.imread(infile)
+        imTest = imageio.imread(args.infile)
     except FileNotFoundError: # file does not exist
-        print("compare_images_phash: one of the file arguments does not exist")
-        return None
+        print("tc: test file does not exist")
+        exit()
     except ValueError: # file is not an image file
-        print("compare_images_exact: one of the file arguments is not an image file")
-        return None
+        print("tc: test file is not an image file")
+        exit()
     except Exception: # unexpected/unknown exception
-        print("compare_images_exact: unexpected/unhandled behaviour in image file reading process")
-        return None
+        print("tc: unexpected/unhandled behaviour in image file reading process")
+        exit()
 
     # loop through each image in the Test database
     for dbImg in os.listdir(args.dbDir):
@@ -59,14 +60,14 @@ def main(arguments):
             continue
 
         # compare the two images
-        if args.m == 'exact':
-            score = c.compare_images_exact(imDB, imTest)
-            diff = np.array([])
-        elif args.m == 'scaled':
-            score, diff = c.compare_images_scaled(imDB, imTest, thumb=args.t, grey=args.g, pixelQuant=args.q)
-        elif args.m == 'phash':
-            score, diff = c.compare_images_phash(imDB, imTest)
-            diff = np.array([])
+        if args.method == 'exact':
+            score = c.compare_images_exact(args.infile, baseDir + "/" + dbImg)
+            #diff = np.array([])
+        elif args.method == 'scaled':
+            score = c.compare_images_scaled(args.infile, baseDir + "/" + dbImg, thumb=args.t, grey=args.g, pixelQuant=args.q)
+        elif args.method  == 'phash':
+            score = c.compare_images_phash(args.infile, baseDir + "/" + dbImg)
+            #diff = np.array([])
 
         if score >= args.threshold:
             match = True
