@@ -1,10 +1,4 @@
-# Technical Challenge
-## SARAO Data Science Technical Challenge
 
-
-_In this technical challenge we want to test for basic skills such as python coding, ability to handle data and reuse open-source code etc., but also to explore more intangible skills such as flexibility, creativity, independence, communication, ability to relearn and teach yourself, ability to implement ideas, ability to solve challenging problems and to scale them to handle large volumes of data._
-
-![icon](images/icon2.png)
 
 to run:
 
@@ -18,6 +12,18 @@ then
 python tc.py <test_image> <database_dir> <method|exact/scaled/phash> 
 
     python tc.py ../Data_Science_Images/Test/test_image6.jpeg ../Data_Science_Images/Training exact
+
+
+
+
+
+# Technical Challenge
+## SARAO Data Science Technical Challenge
+
+
+_In this technical challenge we want to test for basic skills such as python coding, ability to handle data and reuse open-source code etc., but also to explore more intangible skills such as flexibility, creativity, independence, communication, ability to relearn and teach yourself, ability to implement ideas, ability to solve challenging problems and to scale them to handle large volumes of data._
+
+![icon](images/icon2.png)
 
 ## QUESTIONS
 
