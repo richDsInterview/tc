@@ -23,7 +23,7 @@ def main(arguments):
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('infile', help="path to file to compare") #, type=argparse.FileType('r'))
     parser.add_argument('dbDir', help="path to 'Database' directory")
-    parser.add_argument('-m', '--method', help='', type=string, choices=['exact', 'scaled', 'phash'], default='phash')
+    parser.add_argument('-m', '--method', help='', choices=['exact', 'scaled', 'phash'], default='phash')
     parser.add_argument('-t', help="make thumbnail image", action="store_true")
     parser.add_argument('-g', help="make greyscale/flatten colour information", action="store_true")
     parser.add_argument('-q', help="pixel quantisation factor 2^x (default 2^8)", type=int, default=8)
